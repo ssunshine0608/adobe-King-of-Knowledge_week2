@@ -1,170 +1,112 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Adobe 知識王挑戰賽｜Week 2</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>Adobe 知識王挑戰賽｜Week 2</title>
 
-  <!-- React / Babel / Tailwind -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Confetti -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-
-  <style>
-    html, body, #root {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #0b1020;
-    }
-    body {
-      font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    ::-webkit-scrollbar { display: none; }
-
-    /* =========================
-       題目卡動畫（最穩版）
-       ========================= */
-    .q-card {
-      width: 100%;
-      height: 100%;
-      transform: translateZ(0);
-      will-change: transform, opacity;
-    }
-
-    /* 進場：單純由上往下滑 */
-    .q-enter {
-      animation: qEnter 520ms cubic-bezier(.22,.92,.18,1) both;
-    }
-    @keyframes qEnter {
-      from {
-        opacity: 0;
-        transform: translate3d(0, -22%, 0);
-      }
-      to {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-      }
-    }
-
-    /* 退場：只做左滑 + 淡出（最不會卡） */
-    .q-exit {
-      animation: qExit 320ms ease-out both;
-    }
-    @keyframes qExit {
-      from {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-      }
-      to {
-        opacity: 0;
-        transform: translate3d(-30%, 0, 0);
-      }
-    }
-
-    /* =========================
-       結果頁按鈕
-       ========================= */
-    .btn-orange {
-      background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
-      color: #ffffff;
-      text-shadow: 0 1px 2px rgba(0,0,0,.35); /* ✅ 白字微陰影 */
-    }
-  </style>
+<style>
+html,body,#root{
+  margin:0;height:100%;background:#0b1020;overflow:hidden;
+}
+.q-card{will-change:transform,opacity;transform:translateZ(0)}
+.q-enter{animation:enter 520ms cubic-bezier(.22,.92,.18,1) both}
+@keyframes enter{
+  from{opacity:0;transform:translate3d(0,-22%,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+.q-exit{animation:exit 300ms ease-out both}
+@keyframes exit{
+  from{opacity:1;transform:translate3d(0,0,0)}
+  to{opacity:0;transform:translate3d(-30%,0,0)}
+}
+.btn-orange{
+  background:linear-gradient(90deg,#f59e0b,#f97316);
+  color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);
+}
+</style>
 </head>
 
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-  const QUESTIONS = [
-    { image: "q1.jpg", correct: 2 },
-    { image: "q2.jpg", correct: 1 },
-    { image: "q3.jpg", correct: 3 },
-    { image: "q4.jpg", correct: 0 },
-    { image: "q5.jpg", correct: 0 },
-  ];
+const CDN="https://cdn.jsdelivr.net/gh/ssunshine0608/adobe-King-of-Knowledge_week2@main/";
+const LINE_BOT_ID="@your_bot_id";
 
-  const CDN = "https://cdn.jsdelivr.net/gh/ssunshine0608/adobe-King-of-Knowledge_week2@main/";
+const QUESTIONS=[
+ {img:"q1.jpg",ans:2},
+ {img:"q2.jpg",ans:1},
+ {img:"q3.jpg",ans:3},
+ {img:"q4.jpg",ans:0},
+ {img:"q5.jpg",ans:0},
+];
 
-  function App() {
-    const [idx, setIdx] = React.useState(0);
-    const [score, setScore] = React.useState(0);
-    const [anim, setAnim] = React.useState("enter");
-    const [done, setDone] = React.useState(false);
+function App(){
+ const [state,setState]=React.useState("cover");
+ const [i,setI]=React.useState(0);
+ const [score,setScore]=React.useState(0);
+ const [anim,setAnim]=React.useState("enter");
 
-    const answer = (i) => {
-      if (i === QUESTIONS[idx].correct) setScore(s => s + 20);
-      setAnim("exit");
-      setTimeout(() => {
-        if (idx === QUESTIONS.length - 1) {
-          setDone(true);
-        } else {
-          setIdx(idx + 1);
-          setAnim("enter");
-        }
-      }, 320);
-    };
+ const answer=(n)=>{
+   if(n===QUESTIONS[i].ans) setScore(s=>s+20);
+   setAnim("exit");
+   setTimeout(()=>{
+     if(i===QUESTIONS.length-1) setState("result");
+     else{ setI(i+1); setAnim("enter"); }
+   },300);
+ };
 
-    if (done) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center text-white px-6 text-center">
-          <div className="text-6xl font-black mb-4">{score} 分</div>
+ if(state==="cover"){
+   return(
+     <div className="h-full flex items-center justify-center px-6">
+       <img src={CDN+"fengmian.jpg"}
+            className="rounded-xl"
+            onClick={()=>setState("play")} />
+     </div>
+   );
+ }
 
-          {score === 100 ? (
-            <>
-              <div className="text-xl text-amber-300 font-bold mb-4">
-                🏆 恭喜獲得滿分！
-              </div>
-              <button className="btn-orange px-6 py-4 rounded-2xl font-bold text-lg">
-                🎁 分享並領取獎勵
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="text-lg opacity-80 mb-6">
-                必須達到 100 分才能解鎖獎勵
-              </div>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-3 rounded-xl bg-white/20"
-              >
-                再玩一次
-              </button>
-            </>
-          )}
-        </div>
-      );
-    }
+ if(state==="result"){
+   return(
+     <div className="h-full flex flex-col items-center justify-center text-white px-6 text-center">
+       <div className="text-6xl font-black mb-4">{score} 分</div>
+       {score===100?(
+         <button className="btn-orange px-6 py-4 rounded-2xl text-lg font-bold">
+           🎁 分享並領取獎勵
+         </button>
+       ):(
+         <>
+           <div className="opacity-70 mb-4">必須達到 100 分才能解鎖獎勵</div>
+           <button onClick={()=>location.reload()}
+                   className="bg-white/20 px-6 py-3 rounded-xl">
+             再玩一次
+           </button>
+         </>
+       )}
+     </div>
+   );
+ }
 
-    return (
-      <div className="h-full flex items-center justify-center px-4">
-        <div className={"q-card " + (anim === "enter" ? "q-enter" : "q-exit")}>
-          <img
-            src={CDN + QUESTIONS[idx].image}
-            className="w-full rounded-xl"
-            draggable="false"
-          />
-          <div className="grid grid-cols-2 grid-rows-2 absolute inset-0">
-            <div onClick={() => answer(0)} />
-            <div onClick={() => answer(1)} />
-            <div onClick={() => answer(2)} />
-            <div onClick={() => answer(3)} />
-          </div>
-        </div>
-      </div>
-    );
-  }
+ return(
+   <div className="h-full flex items-center justify-center px-4">
+     <div className={"q-card "+(anim==="enter"?"q-enter":"q-exit")}>
+       <img src={CDN+QUESTIONS[i].img} className="rounded-xl" />
+       <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+         {[0,1,2,3].map(n=><div key={n} onClick={()=>answer(n)} />)}
+       </div>
+     </div>
+   </div>
+ );
+}
 
-  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
