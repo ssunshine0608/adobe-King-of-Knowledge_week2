@@ -36,7 +36,7 @@
     .touch-highlight:active { background-color: rgba(255, 255, 255, 0.18); border-radius: 16px; }
 
     /* =========================
-       題目卡動畫（效能版：無 blur/filter）
+       題目卡動畫（效能優先：不 blur、不 scale、不多段角度跳動）
        ========================= */
     .stage { position: relative; width: 100%; height: 100%; }
     .card-wrap { position: relative; width: 100%; height: 100%; }
@@ -50,23 +50,19 @@
       backface-visibility: hidden;
     }
 
-    /* 進場：平滑滑下 → 微抬（拿牌）→ 落位 */
-    .q-enter { animation: qEnterSmooth 560ms cubic-bezier(.22,.92,.18,1) both; }
-    @keyframes qEnterSmooth {
-      0%   { opacity: 0; transform: translate3d(0,-22%,0) rotateZ(0) scale(.995); }
-      60%  { opacity: 1; transform: translate3d(0,0,0)   rotateZ(0) scale(1); }
-      76%  { transform: translate3d(0,-1.8%,0) rotateZ(-1.4deg) scale(1.012); }
-      90%  { transform: translate3d(0,-0.6%,0) rotateZ(-0.6deg) scale(1.006); }
-      100% { opacity: 1; transform: translate3d(0,0,0) rotateZ(0) scale(1); }
+    /* ✅ 進場：只做「由上往下滑入」 */
+    .q-enter { animation: qEnterSlide 520ms cubic-bezier(.22,.92,.18,1) both; }
+    @keyframes qEnterSlide {
+      0%   { opacity: 0; transform: translate3d(0,-22%,0); }
+      100% { opacity: 1; transform: translate3d(0,0,0); }
     }
 
-    /* 離場：拋物線往左上拋 */
-    .q-exit { animation: qExitParabola 460ms cubic-bezier(.18,.85,.15,1) both; }
-    @keyframes qExitParabola {
-      0%   { opacity: 1; transform: translate3d(0,0,0) rotateZ(0) scale(1); }
-      45%  { opacity: 1; transform: translate3d(-18%,-6%,0) rotateZ(-6deg) scale(.995); }
-      78%  { opacity: .85; transform: translate3d(-34%,-18%,0) rotateZ(-12deg) scale(.985); }
-      100% { opacity: 0; transform: translate3d(-46%,-26%,0) rotateZ(-16deg) scale(.975); }
+    /* ✅ 退場：超順拋物線往左上滑走（角度一路變，不跳） */
+    .q-exit { animation: qExitSmooth 420ms cubic-bezier(.25,.9,.25,1) both; }
+    @keyframes qExitSmooth {
+      0%   { opacity: 1; transform: translate3d(0,0,0) rotateZ(0deg); }
+      60%  { opacity: 1; transform: translate3d(-22%,-10%,0) rotateZ(-4deg); }
+      100% { opacity: 0; transform: translate3d(-52%,-28%,0) rotateZ(-8deg); }
     }
 
     /* =========================
@@ -180,7 +176,7 @@
     .btn-green:active{ transform: scale(.98); }
     .btn-orange{
       background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
-      color: #1a1a1a;
+      color: #ffffff; /* ✅ 白字 */
     }
     .btn-orange:active{ transform: scale(.98); }
 
@@ -266,7 +262,6 @@
       React.useEffect(() => {
         if (gameState !== "result" || score !== 100) return;
         if (!window.confetti) return;
-
         window.confetti({ particleCount: 60, angle: 60,  spread: 55, origin: { x: 0, y: 1 }, ticks: 140 });
         window.confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 1 }, ticks: 140 });
       }, [gameState, score]);
@@ -278,7 +273,7 @@
         setShowExplanation(false);
         setIsLock(false);
         setQAnim("enter");
-        setTimeout(() => setQAnim("idle"), 600);
+        setTimeout(() => setQAnim("idle"), 540);
       };
 
       const handleAnswer = (optionIndex) => {
@@ -304,8 +299,8 @@
         }
 
         setQAnim("exit");
-        const EXIT_MS = 460;
-        const ENTER_MS = 560;
+        const EXIT_MS = 420;
+        const ENTER_MS = 520;
 
         setTimeout(() => {
           setCurrentQIndex(prev => prev + 1);
@@ -316,7 +311,6 @@
       };
 
       const shareText = (s) => `【Adobe 知識王挑戰賽】\n我拿到 ${s} 分！\n一起來挑戰～`;
-
       const shareToLineOA = (s) => {
         const msg = shareText(s);
         window.location.href = `https://line.me/R/oaMessage/${LINE_BOT_ID}/?text=${encodeURIComponent(msg)}`;
@@ -375,12 +369,10 @@
                       onError={(e) => { e.target.src = "https://placehold.co/600x1067/111/FFF?text=Question+Not+Found"; }}
                     />
 
-                    {/* 右上 分數 */}
                     <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
                       分數：{score}
                     </div>
 
-                    {/* 點擊區：四格答案 */}
                     <div
                       className={"absolute grid grid-cols-2 grid-rows-2" + (DEV_MODE ? " bg-yellow-300/10" : "")}
                       style={{
@@ -399,43 +391,6 @@
                 </div>
               </div>
             </div>
-
-            {/* DEV_MODE：點擊區調整 */}
-            {DEV_MODE && (
-              <div className="fixed bottom-2 left-1/2 -translate-x-1/2 w-full max-w-md px-3 z-[900]">
-                <div className="bg-black/80 text-white text-[10px] rounded-xl px-3 py-2 space-y-1">
-                  <div className="text-[11px] mb-1 opacity-80">點擊區調整（Top / Height / Left / Width）</div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="w-10">上</span>
-                    <input type="range" min="0" max="100" value={topPercent}
-                      onChange={(e) => setTopPercent(Number(e.target.value))} className="w-full" />
-                    <span className="w-10 text-right">{topPercent}%</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="w-10">高</span>
-                    <input type="range" min="10" max="100" value={heightPercent}
-                      onChange={(e) => setHeightPercent(Number(e.target.value))} className="w-full" />
-                    <span className="w-10 text-right">{heightPercent}%</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="w-10">左</span>
-                    <input type="range" min="0" max="20" value={leftPercent}
-                      onChange={(e) => setLeftPercent(Number(e.target.value))} className="w-full" />
-                    <span className="w-10 text-right">{leftPercent}%</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="w-10">寬</span>
-                    <input type="range" min="50" max="100" value={widthPercent}
-                      onChange={(e) => setWidthPercent(Number(e.target.value))} className="w-full" />
-                    <span className="w-10 text-right">{widthPercent}%</span>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* 解析卡 */}
             <div className={`overlay ${showExplanation ? "show" : ""}`}>
@@ -466,7 +421,6 @@
       if (gameState === "result") {
         const isFullScore = score === 100;
 
-        // 未滿分：照你給的版型
         if (!isFullScore) {
           return (
             <div className="w-full h-full flex items-center justify-center relative overflow-hidden result-bg">
@@ -489,17 +443,11 @@
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="btn-wide btn-grey"
-                  >
+                  <button onClick={() => window.location.reload()} className="btn-wide btn-grey">
                     ↩︎ 再玩一次
                   </button>
 
-                  <button
-                    onClick={() => shareToLineOA(score)}
-                    className="btn-wide btn-green"
-                  >
+                  <button onClick={() => shareToLineOA(score)} className="btn-wide btn-green">
                     🧁 分享好友
                   </button>
                 </div>
@@ -508,12 +456,11 @@
           );
         }
 
-        // 滿分：分享領獎
         return (
           <div className="w-full h-full flex items-center justify-center relative overflow-hidden result-bg">
             <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-white/5 blur-3xl rounded-full"></div>
 
-            <div className="relative z-10 w-full max-w-md px-6 text-center text-white">
+            <div className="relative z-10 w-full max-w-md pxpx-6 text-center text-white">
               <div className="text-sm text-white/80 mb-2">本週挑戰完成！</div>
 
               <div className="text-[84px] leading-none font-black tracking-tight mb-3">
@@ -528,17 +475,11 @@
                 請分享給好友，完成分享後<br/>即可自動領取獎勵！
               </div>
 
-              <button
-                onClick={() => shareToLineOA(score)}
-                className="btn-wide btn-orange"
-              >
+              <button onClick={() => shareToLineOA(score)} className="btn-wide btn-orange">
                 🎁 分享並領取獎勵
               </button>
 
-              <button
-                onClick={() => window.location.reload()}
-                className="underlink"
-              >
+              <button onClick={() => window.location.reload()} className="underlink">
                 再玩一次
               </button>
             </div>
