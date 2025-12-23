@@ -36,73 +36,37 @@
     .touch-highlight:active { background-color: rgba(255, 255, 255, 0.18); border-radius: 16px; }
 
     /* =========================
-       題目卡動畫（滑行進場 + 拿牌抬起感 / 拋物線左上拋出場）
+       題目卡動畫（效能版：無 blur/filter）
        ========================= */
     .stage { position: relative; width: 100%; height: 100%; }
-    .card-wrap {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      perspective: 1100px;
-      perspective-origin: 50% 30%;
-    }
+    .card-wrap { position: relative; width: 100%; height: 100%; }
+
     .q-card {
       position: relative;
       width: 100%;
       height: 100%;
-      transform-style: preserve-3d;
-      will-change: transform, opacity, filter;
+      transform: translateZ(0);
+      will-change: transform, opacity;
       backface-visibility: hidden;
     }
 
-    /* 進場：桌面滑行 → 隱形手拿牌微抬起 → 落位 */
-    .q-enter { animation: qEnterSmooth 620ms cubic-bezier(.22,.92,.18,1) both; }
+    /* 進場：平滑滑下 → 微抬（拿牌）→ 落位 */
+    .q-enter { animation: qEnterSmooth 560ms cubic-bezier(.22,.92,.18,1) both; }
     @keyframes qEnterSmooth {
-      0% {
-        opacity: 0;
-        transform: translate3d(0, -22%, 0) rotateZ(0deg) scale(0.995);
-        filter: blur(1.5px);
-      }
-      55% {
-        opacity: 1;
-        transform: translate3d(0, 0%, 0) rotateZ(0deg) scale(1);
-        filter: blur(0);
-      }
-      72% {
-        transform: translate3d(0, -1.8%, 0) rotateZ(-1.4deg) scale(1.012);
-      }
-      88% {
-        transform: translate3d(0, -0.6%, 0) rotateZ(-0.6deg) scale(1.006);
-      }
-      100% {
-        opacity: 1;
-        transform: translate3d(0, 0%, 0) rotateZ(0deg) scale(1);
-        filter: blur(0);
-      }
+      0%   { opacity: 0; transform: translate3d(0,-22%,0) rotateZ(0) scale(.995); }
+      60%  { opacity: 1; transform: translate3d(0,0,0)   rotateZ(0) scale(1); }
+      76%  { transform: translate3d(0,-1.8%,0) rotateZ(-1.4deg) scale(1.012); }
+      90%  { transform: translate3d(0,-0.6%,0) rotateZ(-0.6deg) scale(1.006); }
+      100% { opacity: 1; transform: translate3d(0,0,0) rotateZ(0) scale(1); }
     }
 
     /* 離場：拋物線往左上拋 */
-    .q-exit { animation: qExitParabola 520ms cubic-bezier(.18,.85,.15,1) both; }
+    .q-exit { animation: qExitParabola 460ms cubic-bezier(.18,.85,.15,1) both; }
     @keyframes qExitParabola {
-      0% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) rotateZ(0deg) scale(1);
-        filter: blur(0);
-      }
-      40% {
-        opacity: 1;
-        transform: translate3d(-18%, -6%, 0) rotateZ(-6deg) scale(0.995);
-      }
-      75% {
-        opacity: 0.85;
-        transform: translate3d(-34%, -18%, 0) rotateZ(-12deg) scale(0.985);
-        filter: blur(0.8px);
-      }
-      100% {
-        opacity: 0;
-        transform: translate3d(-46%, -26%, 0) rotateZ(-16deg) scale(0.975);
-        filter: blur(1.4px);
-      }
+      0%   { opacity: 1; transform: translate3d(0,0,0) rotateZ(0) scale(1); }
+      45%  { opacity: 1; transform: translate3d(-18%,-6%,0) rotateZ(-6deg) scale(.995); }
+      78%  { opacity: .85; transform: translate3d(-34%,-18%,0) rotateZ(-12deg) scale(.985); }
+      100% { opacity: 0; transform: translate3d(-46%,-26%,0) rotateZ(-16deg) scale(.975); }
     }
 
     /* =========================
@@ -242,6 +206,7 @@
     // ===============================
     const DEV_MODE = false;
 
+    // ✅ 換成你的 LINE OA ID
     const LINE_BOT_ID = "@your_bot_id";
 
     // GitHub 圖片（jsDelivr）
@@ -258,7 +223,7 @@
       { id: 5, image: "q5.jpg", correct: 0, explanation: "Adobe 最新 AI 音訊技術可調整語音的情緒、語氣與表達方式，提升配音與影音內容的情感表現力。" }
     ];
 
-    // 點擊區（沿用你 Week1 校準）
+    // 點擊區（沿用你校準）
     const INIT_TOP = 38;
     const INIT_HEIGHT = 42;
     const INIT_LEFT = 8;
@@ -284,6 +249,19 @@
       const [leftPercent, setLeftPercent] = React.useState(INIT_LEFT);
       const [widthPercent, setWidthPercent] = React.useState(INIT_WIDTH);
 
+      // ✅ 預載當前與下一題（減少換題 decode 卡頓）
+      React.useEffect(() => {
+        const preload = (src) => {
+          const img = new Image();
+          img.decoding = "async";
+          img.src = src;
+        };
+        const cur = QUESTIONS[currentQIndex]?.image;
+        const next = QUESTIONS[currentQIndex + 1]?.image;
+        if (cur) preload(getImagePath(cur));
+        if (next) preload(getImagePath(next));
+      }, [currentQIndex]);
+
       // 100 分彩帶（只有滿分才噴）
       React.useEffect(() => {
         if (gameState !== "result" || score !== 100) return;
@@ -300,7 +278,7 @@
         setShowExplanation(false);
         setIsLock(false);
         setQAnim("enter");
-        setTimeout(() => setQAnim("idle"), 660);
+        setTimeout(() => setQAnim("idle"), 600);
       };
 
       const handleAnswer = (optionIndex) => {
@@ -326,8 +304,8 @@
         }
 
         setQAnim("exit");
-        const EXIT_MS = 520;
-        const ENTER_MS = 620;
+        const EXIT_MS = 460;
+        const ENTER_MS = 560;
 
         setTimeout(() => {
           setCurrentQIndex(prev => prev + 1);
@@ -337,12 +315,10 @@
         }, EXIT_MS);
       };
 
-      const shareText = (score) => {
-        return `【Adobe 知識王挑戰賽】\n我拿到 ${score} 分！\n一起來挑戰～`;
-      };
+      const shareText = (s) => `【Adobe 知識王挑戰賽】\n我拿到 ${s} 分！\n一起來挑戰～`;
 
-      const shareToLineOA = (score) => {
-        const msg = shareText(score);
+      const shareToLineOA = (s) => {
+        const msg = shareText(s);
         window.location.href = `https://line.me/R/oaMessage/${LINE_BOT_ID}/?text=${encodeURIComponent(msg)}`;
       };
 
@@ -354,7 +330,9 @@
               <div className="relative w-full aspect-[9/16] mx-auto">
                 <img
                   src={getImagePath(COVER_IMAGE)}
-                  className="w-full h-full object-contain rounded-xl shadow-2xl"
+                  decoding="async"
+                  draggable="false"
+                  className="w-full h-full object-contain rounded-xl shadow-lg"
                   onError={(e) => { e.target.src = "https://placehold.co/600x1067/111/FFF?text=Cover+Not+Found"; }}
                 />
 
@@ -391,7 +369,9 @@
                   <div className={"q-card " + animClass}>
                     <img
                       src={getImagePath(currentQ.image)}
-                      className="w-full h-full object-contain rounded-xl shadow-xl"
+                      decoding="async"
+                      draggable="false"
+                      className="w-full h-full object-contain rounded-xl shadow-lg"
                       onError={(e) => { e.target.src = "https://placehold.co/600x1067/111/FFF?text=Question+Not+Found"; }}
                     />
 
@@ -486,7 +466,7 @@
       if (gameState === "result") {
         const isFullScore = score === 100;
 
-        // ✅ 未滿分：照你給的版型（20分那張）
+        // 未滿分：照你給的版型
         if (!isFullScore) {
           return (
             <div className="w-full h-full flex items-center justify-center relative overflow-hidden result-bg">
@@ -528,7 +508,7 @@
           );
         }
 
-        // ✅ 滿分：分享領獎版
+        // 滿分：分享領獎
         return (
           <div className="w-full h-full flex items-center justify-center relative overflow-hidden result-bg">
             <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[520px] h-[520px] bg-white/5 blur-3xl rounded-full"></div>
