@@ -16,85 +16,80 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
   <style>
-    html, body, #root {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      overscroll-behavior: none;
-      background: #0b1020;
-    }
-    body {
-      font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-    }
-    ::-webkit-scrollbar { display: none; }
+    /* 讓位移更順（尤其手機） */
+.q-card { backface-visibility: hidden; }
 
-    .touch-highlight { transition: background-color 0.1s; }
-    .touch-highlight:active { background-color: rgba(255, 255, 255, 0.18); border-radius: 16px; }
+/* 進場：平滑滑行 → 隱形手「拿牌」微抬起 → 落位 */
+.q-enter {
+  animation: qEnterSmooth 620ms cubic-bezier(.22,.92,.18,1) both;
+}
 
-    /* =========================
-       題目卡：抽卡進場 / 左滑出場
-       ========================= */
-    .stage {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    .card-wrap {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      perspective: 1100px;
-      perspective-origin: 50% 30%;
-    }
-    .q-card {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      transform-style: preserve-3d;
-      will-change: transform, opacity, filter;
-    }
+@keyframes qEnterSmooth {
+  /* 0%：卡在上方，像在桌面外滑過來 */
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -22%, 0) rotateZ(0deg) scale(0.995);
+    filter: blur(1.5px);
+  }
 
-    /* 進場：由上往下 + 翻卡（抽卡感） */
-    .q-enter {
-      animation: qEnter 520ms cubic-bezier(.2,.9,.15,1) both;
-    }
-    @keyframes qEnter {
-      0% {
-        opacity: 0;
-        transform: translateY(-18%) rotateX(78deg) scale(0.98);
-        filter: blur(2px);
-      }
-      55% {
-        opacity: 1;
-        transform: translateY(2%) rotateX(10deg) scale(1.01);
-        filter: blur(0);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) rotateX(0deg) scale(1);
-        filter: blur(0);
-      }
-    }
+  /* 55%：順滑滑到接近定位（像在桌面滑行） */
+  55% {
+    opacity: 1;
+    transform: translate3d(0, 0%, 0) rotateZ(0deg) scale(1);
+    filter: blur(0);
+  }
 
-    /* 出場：向左滑走 */
-    .q-exit {
-      animation: qExit 360ms cubic-bezier(.25,.8,.2,1) both;
-    }
-    @keyframes qExit {
-      0% {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-        filter: blur(0);
-      }
-      100% {
-        opacity: 0;
-        transform: translateX(-28%) scale(0.98);
-        filter: blur(1.5px);
-      }
+  /* 72%：隱形手把牌「拿起來」：微抬＋微翹角（撲克牌感） */
+  72% {
+    transform: translate3d(0, -1.8%, 0) rotateZ(-1.4deg) scale(1.012);
+  }
+
+  /* 88%：手放鬆一點，回彈 */
+  88% {
+    transform: translate3d(0, -0.6%, 0) rotateZ(-0.6deg) scale(1.006);
+  }
+
+  /* 100%：穩穩落位 */
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0%, 0) rotateZ(0deg) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* 離場：拋物線往左上拋（先加速、後飄走） */
+.q-exit {
+  animation: qExitParabola 520ms cubic-bezier(.18,.85,.15,1) both;
+}
+
+@keyframes qExitParabola {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateZ(0deg) scale(1);
+    filter: blur(0);
+  }
+
+  /* 40%：先往左「甩」出去一點，但同時往上抬（拋物線起手式） */
+  40% {
+    opacity: 1;
+    transform: translate3d(-18%, -6%, 0) rotateZ(-6deg) scale(0.995);
+  }
+
+  /* 75%：到拋物線高點：更往上、更往左 */
+  75% {
+    opacity: 0.85;
+    transform: translate3d(-34%, -18%, 0) rotateZ(-12deg) scale(0.985);
+    filter: blur(0.8px);
+  }
+
+  /* 100%：往左上遠處飄走（拋物線結束） */
+  100% {
+    opacity: 0;
+    transform: translate3d(-46%, -26%, 0) rotateZ(-16deg) scale(0.975);
+    filter: blur(1.4px);
+  }
+}
+
     }
 
     /* =========================
